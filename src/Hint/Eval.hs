@@ -1,10 +1,12 @@
 module Hint.Eval (
-      interpret, as, infer,
+      interpret, interpretIO, interpretIOWith, as, infer,
       unsafeInterpret,
       eval, parens
 ) where
 
 import qualified GHC.Exts (unsafeCoerce#)
+
+import Control.Monad.Trans (liftIO)
 
 import Data.Typeable hiding (typeOf)
 import qualified Data.Typeable (typeOf)
@@ -29,6 +31,18 @@ infer = undefined
 -- | Evaluates an expression, given a witness for its monomorphic type.
 interpret :: (MonadInterpreter m, Typeable a) => String -> a -> m a
 interpret expr wit = unsafeInterpret expr (show $ Data.Typeable.typeOf wit)
+
+-- | Evaluates an IO expression, given a witness for its monomorphic
+-- return type.
+interpretIO :: (MonadInterpreter m, Typeable a) => String -> a -> m a
+interpretIO expr wit = interpretIOWith expr wit liftIO
+
+-- | Evaluates an IO expression, passing the result thunk to a
+-- handler, which may supply custom control flow.
+interpretIOWith :: (MonadInterpreter m, Typeable a) => String -> a -> (IO a -> m b) -> m b
+interpretIOWith expr wit f =
+    do k <- unsafeInterpret expr ("IO " ++ (show $ Data.Typeable.typeOf wit))
+       f k
 
 unsafeInterpret :: (MonadInterpreter m) => String -> String -> m a
 unsafeInterpret expr type_str =
