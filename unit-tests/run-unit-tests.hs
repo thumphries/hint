@@ -56,6 +56,7 @@ test_reload_modified = TestCase "reload_modified" [mod_file_a, mod_file_b] $ do
                              --
                              liftIO $ writeFile mod_file_a mod_a_v2
                              liftIO $ writeFile mod_file_b mod_b
+                             set [searchPath := ["."]]
                              reload
                              setTopLevelModules [mod_name_a]
                              f_v2 <- interpret "fun" (as :: String -> String)
